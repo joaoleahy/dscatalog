@@ -1,6 +1,8 @@
 package com.devsuperior.dscatalog.services;
 
 import com.devsuperior.dscatalog.repositories.ProductRepository;
+import com.devsuperior.dscatalog.services.exceptions.DatabaseException;
+import com.devsuperior.dscatalog.services.exceptions.ResourceNotFoundException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,15 +25,19 @@ public class ProductServiceTests {
 
     private long existingId;
     private long nonExistingId;
+    private long dependentId;
 
     @BeforeEach
     void setup() {
         existingId = 1L;
         nonExistingId = 1000L;
+        dependentId = 4L;
 
         doNothing().when(repository).deleteById(existingId);
 
         doThrow(EmptyResultDataAccessException.class).when(repository).deleteById(nonExistingId);
+
+        doThrow(DatabaseException.class).when(repository).deleteById(dependentId);
     }
 
     @Test
@@ -40,7 +46,25 @@ public class ProductServiceTests {
         Assertions.assertDoesNotThrow(() -> service.delete(existingId));
 
         verify(repository, times(1)).deleteById(existingId);
+    }
+
+    @Test
+    public void deleteShouldThrowResourceNotFoundExceptionWhenIdDoesNotExists() {
+
+        Assertions.assertThrows(ResourceNotFoundException.class, () -> service.delete(nonExistingId));
+
+        verify(repository, times(1)).deleteById(nonExistingId);
 
     }
+
+    @Test
+    public void deleteShouldThrowDatabaseExceptionWhenDependentIdDoesNotExists() {
+
+        Assertions.assertThrows(DatabaseException.class, () -> service.delete(dependentId));
+
+        verify(repository, times(1)).deleteById(dependentId);
+
+    }
+
 
 }
